@@ -88,7 +88,7 @@ class RPiHardwareBackend:
             self.GPIO.setup(pin, self.GPIO.OUT)
             self.GPIO.output(pin, self.GPIO.LOW)
         for pin in self.col_pins:
-            self.GPIO.setup(pin, self.GPIO.IN, pull_up_down=self.GPIO.PUD_UP)
+            self.GPIO.setup(pin, self.GPIO.IN, pull_up_down=self.GPIO.PUD_DOWN)
 
         # Configurações do LCD I2C
         self.I2C_ADDR = 0x27
