@@ -56,6 +56,7 @@ class FechaduraApp:
     def transition_to_idle(self):
         self.state = State.IDLE
         self.input_buffer = ""
+        self.hw.lock_door() # Tranca a porta (aciona o servo)
         self.hw.lcd_clear()
         self.hw.lcd_print(" STATUS: LOCKED ", 1)
         if not self.is_door_closed():
@@ -95,6 +96,9 @@ class FechaduraApp:
         self.hw.buzzer_on()
         time.sleep(0.2)
         self.hw.buzzer_off()
+
+        # Aciona o servo para abrir a porta
+        self.hw.unlock_door()
         
         self.unlocked_end_time = time.time() + 5.0 # Fica destrancada por 5 segundos
 

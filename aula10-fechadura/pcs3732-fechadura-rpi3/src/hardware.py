@@ -8,6 +8,8 @@ class HardwareBackend(Protocol):
     def lcd_clear(self) -> None: ...
     def get_distance_cm(self) -> float: ...
     def scan_keypad(self) -> Optional[str]: ...
+    def unlock_door(self) -> None: ...
+    def lock_door(self) -> None: ...
     def close(self) -> None: ...
 
 class MockBackend:
@@ -45,6 +47,12 @@ class MockBackend:
             return k
         return None
 
+    def unlock_door(self):
+        self._record("door", "unlocked")
+
+    def lock_door(self):
+        self._record("door", "locked")
+
     def close(self):
         self.closed = True
         self._record("backend", "closed")
@@ -74,6 +82,12 @@ class RPiHardwareBackend:
         self.GPIO.setup(self.trig_pin, self.GPIO.OUT)
         self.GPIO.setup(self.echo_pin, self.GPIO.IN)
         self.GPIO.output(self.trig_pin, self.GPIO.LOW)
+
+        # Configurações do Servo Motor
+        self.servo_pin = 12
+        self.GPIO.setup(self.servo_pin, self.GPIO.OUT)
+        self.pwm_servo = self.GPIO.PWM(self.servo_pin, 50) # 50Hz
+        self.pwm_servo.start(0)
 
         # Configurações do Teclado Matricial 4x4
         self.row_pins = [16, 20, 21, 26]
@@ -177,7 +191,20 @@ class RPiHardwareBackend:
             self.GPIO.output(row_pin, self.GPIO.LOW)
         return None
 
+    def unlock_door(self):
+        # 180 graus (ou 90, depende de como montar). Duty cycle ~10% a 12% para SG90
+        self.pwm_servo.ChangeDutyCycle(10.0)
+        time.sleep(0.5)
+        self.pwm_servo.ChangeDutyCycle(0)
+
+    def lock_door(self):
+        # 0 graus. Duty cycle ~2% a 3% para SG90
+        self.pwm_servo.ChangeDutyCycle(2.5)
+        time.sleep(0.5)
+        self.pwm_servo.ChangeDutyCycle(0)
+
     def close(self):
         self.lcd_clear()
         self.buzzer_off()
+        self.pwm_servo.stop()
         self.GPIO.cleanup()
