@@ -10,7 +10,6 @@ Implementação em Python da lógica completa de uma fechadura eletrônica com:
 - bloqueio temporário após três senhas incorretas;
 - detecção de abertura forçada;
 - armazenamento da senha com PBKDF2-HMAC-SHA256 e salt;
-- registros textuais e eventos estruturados em JSON Lines;
 - máquina de estados e sinais sonoros não bloqueantes.
 
 ## Arquivo principal
@@ -44,12 +43,11 @@ Na ausência de `config/credentials.json`, a primeira execução cria a senha de
 
 - `src/`: aplicação e drivers;
 - `scripts/`: testes isolados de cada componente;
-- `tests/`: testes automatizados sem acesso às GPIOs;
 - `config/lock_config.json`: parâmetros ajustáveis;
 - `PINOUT.txt`: pinagem e conflitos relevantes da placa.
 
-## Arquivos gerados durante a execução
+## Arquivo gerado durante a execução
 
-- `config/credentials.json`;
-- `logs/electronic_lock.log`;
-- `logs/events.jsonl`.
+- `config/credentials.json`: armazena somente o salt e o hash da senha.
+
+O programa não cria arquivos de log. As mensagens essenciais são exibidas apenas no terminal.

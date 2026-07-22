@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import time
 from collections import deque
 from enum import Enum, auto
@@ -8,7 +7,6 @@ from typing import Protocol
 
 from config import LockConfig
 from credentials import CredentialStore
-from event_log import EventLog
 
 
 class LockHardware(Protocol):
@@ -74,13 +72,10 @@ class LockController:
         config: LockConfig,
         hardware: LockHardware,
         credentials: CredentialStore,
-        events: EventLog,
     ) -> None:
         self.cfg = config
         self.hw = hardware
         self.credentials = credentials
-        self.events = events
-        self.log = logging.getLogger(__name__)
         self.buzzer = BuzzerPattern(hardware)
 
         self.state = State.LOCKED
@@ -98,19 +93,9 @@ class LockController:
     def start(self) -> None:
         self.hw.lock()
         self.hw.set_lcd("FECHADURA", "Digite a senha")
-        self.events.write("system_started", state=self.state.name)
-        self.log.info("Sistema iniciado no estado %s", self.state.name)
 
-    def _set_state(self, new_state: State, event: str, **details: object) -> None:
-        old = self.state
+    def _set_state(self, new_state: State) -> None:
         self.state = new_state
-        self.events.write(
-            event,
-            state=new_state.name,
-            previous_state=old.name,
-            **details,
-        )
-        self.log.info("Estado %s -> %s (%s)", old.name, new_state.name, event)
 
     def _display_prompt(self) -> None:
         self.hw.set_lcd("FECHADURA", "Senha: " + "*" * len(self.pin_buffer))
@@ -125,26 +110,17 @@ class LockController:
         self.hw.unlock()
         self.buzzer.play([(True, 0.08), (False, 0.08), (True, 0.08)])
         self.state_deadline = now + self.cfg.unlock_duration_s
-        self._set_state(State.UNLOCKED, "access_granted")
+        self._set_state(State.UNLOCKED)
         self.hw.set_lcd("ACESSO LIBERADO", "Fechadura aberta")
 
     def _failure(self, now: float) -> None:
         self.failed_attempts += 1
         self.pin_buffer = ""
         self.buzzer.play([(True, 0.65)])
-        self.events.write(
-            "access_denied",
-            state=self.state.name,
-            failed_attempts=self.failed_attempts,
-        )
         if self.failed_attempts >= self.cfg.max_failed_attempts:
             self.cooldown_deadline = now + self.cfg.cooldown_s
             self._last_cooldown_second = None
-            self._set_state(
-                State.COOLDOWN,
-                "cooldown_started",
-                duration_s=self.cfg.cooldown_s,
-            )
+            self._set_state(State.COOLDOWN)
             self.hw.set_lcd("BLOQUEADO", f"Aguarde {int(self.cfg.cooldown_s)}s")
         else:
             remaining = self.cfg.max_failed_attempts - self.failed_attempts
@@ -155,7 +131,6 @@ class LockController:
             self.pin_buffer = ""
             self.buzzer.play([(True, 0.20)])
             self._show_temporary("SENHA INVALIDA", "Use 4 a 6 dig.", 1.4)
-            self.events.write("invalid_pin_length", state=self.state.name)
             return
         if self.credentials.verify(self.pin_buffer):
             self._success(now)
@@ -163,8 +138,6 @@ class LockController:
             self._failure(now)
 
     def _handle_key(self, key: str, now: float) -> None:
-        self.events.write("key_pressed", state=self.state.name, key=key)
-
         if self.state == State.COOLDOWN:
             self.buzzer.play([(True, 0.05)])
             return
@@ -196,7 +169,7 @@ class LockController:
             if closed:
                 self.hw.lock()
                 self.buzzer.stop()
-                self._set_state(State.LOCKED, "manual_lock")
+                self._set_state(State.LOCKED)
                 self.hw.set_lcd("TRANCADA", "Digite a senha")
             else:
                 self._show_temporary("PORTA ABERTA", "Nao pode trancar", 1.5)
@@ -216,12 +189,6 @@ class LockController:
         if now - self._sensor_candidate_since >= self.cfg.sensor_stable_time_s:
             if raw != self._last_closed:
                 self._last_closed = raw
-                self.events.write(
-                    "door_sensor_changed",
-                    state=self.state.name,
-                    closed=raw,
-                    distance_cm=self.hw.read_distance_cm(),
-                )
             return raw
         return self._last_closed
 
@@ -229,7 +196,7 @@ class LockController:
         if self.state == State.ALARM:
             return
         self.pin_buffer = ""
-        self._set_state(State.ALARM, "forced_open_detected")
+        self._set_state(State.ALARM)
         self.hw.set_lcd("ALERTA!", "PORTA FORCADA")
         self.buzzer.play([(True, 0.25), (False, 0.15)], repeat=True)
 
@@ -247,10 +214,10 @@ class LockController:
             return
         if closed is True:
             self.hw.lock()
-            self._set_state(State.LOCKED, "automatic_lock")
+            self._set_state(State.LOCKED)
             self.hw.set_lcd("TRANCADA", "Digite a senha")
         else:
-            self._set_state(State.WAITING_CLOSE, "waiting_door_close")
+            self._set_state(State.WAITING_CLOSE)
             self.hw.set_lcd("FECHE A PORTA", "Aguardando...")
             self.buzzer.play([(True, 0.10), (False, 0.90)], repeat=True)
 
@@ -258,7 +225,7 @@ class LockController:
         if closed is True:
             self.buzzer.stop()
             self.hw.lock()
-            self._set_state(State.LOCKED, "door_closed_and_locked")
+            self._set_state(State.LOCKED)
             self.hw.set_lcd("TRANCADA", "Digite a senha")
 
     def _update_cooldown(self, now: float) -> None:
@@ -268,7 +235,7 @@ class LockController:
             self.hw.set_lcd("BLOQUEADO", f"Aguarde {remaining:2d}s")
         if now >= self.cooldown_deadline:
             self.failed_attempts = 0
-            self._set_state(State.LOCKED, "cooldown_finished")
+            self._set_state(State.LOCKED)
             self.hw.set_lcd("TRANCADA", "Digite a senha")
 
     def update(self) -> None:
@@ -302,4 +269,3 @@ class LockController:
 
     def close(self) -> None:
         self.buzzer.stop()
-        self.events.write("system_stopped", state=self.state.name)

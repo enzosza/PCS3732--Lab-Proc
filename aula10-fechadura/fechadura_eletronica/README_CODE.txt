@@ -21,7 +21,7 @@ CREDENCIAL INICIAL
   Se config/credentials.json não existir, a primeira execução cria a senha 1234.
   O arquivo armazena PBKDF2-HMAC-SHA256 com salt, nunca a senha em texto claro.
 
-ARQUIVOS GERADOS
+ARQUIVO GERADO
   config/credentials.json
-  logs/electronic_lock.log
-  logs/events.jsonl
+
+O programa não gera arquivos de log.

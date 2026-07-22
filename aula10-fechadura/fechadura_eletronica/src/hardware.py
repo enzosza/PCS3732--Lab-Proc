@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import time
 
 from gpiozero import AngularServo, Buzzer, DistanceSensor
@@ -15,8 +14,6 @@ class FreenoveHardware:
 
     def __init__(self, config: LockConfig) -> None:
         self.config = config
-        self.log = logging.getLogger(__name__)
-
         self.keypad = MatrixKeypad(
             config.keypad_rows,
             config.keypad_cols,
@@ -73,8 +70,8 @@ class FreenoveHardware:
             if value <= 0:
                 return self._last_distance_cm
             self._last_distance_cm = value
-        except Exception as exc:  # falha do sensor não deve derrubar a aplicação
-            self.log.warning("Falha ao ler sensor ultrassônico: %s", exc)
+        except Exception:  # falha do sensor não deve derrubar a aplicação
+            pass
         return self._last_distance_cm
 
     def door_is_closed(self) -> bool | None:
@@ -84,11 +81,10 @@ class FreenoveHardware:
         return distance <= self.config.closed_threshold_cm
 
     def close(self) -> None:
-        errors: list[Exception] = []
         try:
             self.buzzer_off()
-        except Exception as exc:
-            errors.append(exc)
+        except Exception:
+            pass
         for resource in (
             self.keypad,
             self.distance_sensor,
@@ -98,7 +94,5 @@ class FreenoveHardware:
         ):
             try:
                 resource.close()
-            except Exception as exc:
-                errors.append(exc)
-        if errors:
-            self.log.warning("Erros durante liberação do hardware: %s", errors)
+            except Exception:
+                pass
