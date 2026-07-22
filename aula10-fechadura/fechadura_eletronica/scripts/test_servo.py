@@ -16,7 +16,7 @@ def main() -> None:
     cfg = LockConfig.load_or_create("config/lock_config.json")
     servo = AngularServo(
         cfg.servo_gpio,
-        initial_angle=cfg.servo_locked_angle,
+        initial_angle=None,
         min_angle=0,
         max_angle=180,
         min_pulse_width=cfg.servo_min_pulse_ms / 1000,
@@ -30,7 +30,9 @@ def main() -> None:
         ):
             print(f"Posição {label}: {angle:.1f} graus")
             servo.angle = angle
-            time.sleep(2)
+            time.sleep(cfg.servo_move_duration_s)
+            servo.detach()
+            time.sleep(max(0.0, 2.0 - cfg.servo_move_duration_s))
     finally:
         servo.close()
 

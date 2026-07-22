@@ -46,6 +46,11 @@ Na ausência de `config/credentials.json`, a primeira execução cria a senha de
 - `config/lock_config.json`: parâmetros ajustáveis;
 - `PINOUT.txt`: pinagem e conflitos relevantes da placa.
 
+O PWM do servo permanece ativo somente durante `servo_move_duration_s` após
+cada comando de abertura ou fechamento. Em seguida, o sinal é desligado para
+evitar tremulação enquanto o servo está parado. Aumente esse valor se o servo
+não tiver tempo suficiente para completar o movimento sob carga.
+
 ## Arquivo gerado durante a execução
 
 - `config/credentials.json`: armazena somente o salt e o hash da senha.

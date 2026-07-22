@@ -26,12 +26,15 @@ class FreenoveHardware:
         self.buzzer = Buzzer(config.active_buzzer_gpio)
         self.servo = AngularServo(
             config.servo_gpio,
-            initial_angle=config.servo_locked_angle,
+            # O controlador solicita a posição inicial em start(). Começamos
+            # sem PWM para o servo não tentar manter uma posição indefinidamente.
+            initial_angle=None,
             min_angle=0,
             max_angle=180,
             min_pulse_width=config.servo_min_pulse_ms / 1000.0,
             max_pulse_width=config.servo_max_pulse_ms / 1000.0,
         )
+        self._servo_detach_deadline: float | None = None
         self.distance_sensor = DistanceSensor(
             echo=config.ultrasonic_echo_gpio,
             trigger=config.ultrasonic_trigger_gpio,
@@ -48,11 +51,27 @@ class FreenoveHardware:
     def set_lcd(self, line1: str, line2: str = "") -> None:
         self.lcd.write_lines(line1, line2)
 
+    def _move_servo(self, angle: float) -> None:
+        self.servo.angle = angle
+        self._servo_detach_deadline = (
+            time.monotonic() + self.config.servo_move_duration_s
+        )
+
     def lock(self) -> None:
-        self.servo.angle = self.config.servo_locked_angle
+        self._move_servo(self.config.servo_locked_angle)
 
     def unlock(self) -> None:
-        self.servo.angle = self.config.servo_unlocked_angle
+        self._move_servo(self.config.servo_unlocked_angle)
+
+    def update(self) -> None:
+        """Desliga o PWM assim que o movimento atual estiver concluído."""
+
+        if self._servo_detach_deadline is None:
+            return
+        if time.monotonic() < self._servo_detach_deadline:
+            return
+        self.servo.detach()
+        self._servo_detach_deadline = None
 
     def buzzer_on(self) -> None:
         self.buzzer.on()
@@ -81,6 +100,7 @@ class FreenoveHardware:
         return distance <= self.config.closed_threshold_cm
 
     def close(self) -> None:
+        self._servo_detach_deadline = None
         try:
             self.buzzer_off()
         except Exception:

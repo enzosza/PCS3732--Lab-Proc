@@ -55,7 +55,11 @@ class MatrixKeypad:
             time.sleep(self._settle_time_s)
             try:
                 for row_index, row in enumerate(self._rows):
-                    if not row.value:  # tecla fecha o circuito para LOW
+                    # Assim como no exemplo da aula 8, usamos ``value``
+                    # diretamente. Com pull_up=True, o gpiozero considera o
+                    # nível LOW como ativo: value vale 1 quando a tecla fecha
+                    # o circuito entre a linha e a coluna em LOW.
+                    if row.value:
                         pressed = self._keymap[row_index][col_index]
                         break
             finally:
