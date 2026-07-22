@@ -76,8 +76,8 @@ class RPiHardwareBackend:
         self.GPIO.output(self.trig_pin, self.GPIO.LOW)
 
         # Configurações do Teclado Matricial 4x4
-        self.row_pins = [17, 27, 22, 10]
-        self.col_pins = [9, 11, 5, 6]
+        self.row_pins = [16, 20, 21, 26]
+        self.col_pins = [19, 13, 6, 5]
         self.keys = [
             ['1', '2', '3', 'A'],
             ['4', '5', '6', 'B'],
