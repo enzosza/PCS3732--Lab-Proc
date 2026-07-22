@@ -12,7 +12,6 @@ from credentials import CredentialStore
 class LockHardware(Protocol):
     """Interface mínima usada pelo controlador, facilitando testes sem GPIO."""
 
-    def update(self) -> None: ...
     def poll_key(self) -> str | None: ...
     def set_lcd(self, line1: str, line2: str = "") -> None: ...
     def lock(self) -> None: ...
@@ -241,7 +240,6 @@ class LockController:
 
     def update(self) -> None:
         now = time.monotonic()
-        self.hw.update()
         self.buzzer.update(now)
 
         key = self.hw.poll_key()

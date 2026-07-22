@@ -34,8 +34,6 @@ class LockConfig:
     servo_unlocked_angle: float = 100.0
     servo_min_pulse_ms: float = 0.5
     servo_max_pulse_ms: float = 2.5
-    # Tempo durante o qual o PWM permanece ativo para completar um movimento.
-    servo_move_duration_s: float = 0.6
 
     # Sensor ultrassônico: distância <= limiar indica porta fechada.
     closed_threshold_cm: float = 12.0
