@@ -1,0 +1,31 @@
+Freenove Projects Board for Raspberry Pi v1.2 — numeração BCM
+
+Teclado 4x4:
+  Linhas:  GPIO16, GPIO20, GPIO21, GPIO26
+  Colunas: GPIO19, GPIO13, GPIO6, GPIO5
+
+Servo da fechadura:
+  GPIO18
+
+Buzzer ativo integrado:
+  GPIO12
+
+Sensor ultrassônico:
+  Trigger: GPIO14
+  Echo:    GPIO15
+
+LCD1602 I2C:
+  SDA: GPIO2
+  SCL: GPIO3
+  Barramento: /dev/i2c-1
+  Endereço esperado: 0x27 ou 0x3F
+
+Restrições relevantes da placa:
+- Buzzer ativo e relé não devem ser usados simultaneamente.
+- Motor DC e ultrassônico não devem ser usados simultaneamente.
+- Servo e WS2812LED não devem ser usados simultaneamente.
+- Stepper, teclado e RGB LED não devem ser usados simultaneamente.
+- Touch button e teclado não devem ser usados simultaneamente.
+
+A solução usa servo, buzzer ativo, ultrassônico, teclado e LCD; não usa os
+recursos conflitantes citados acima.
